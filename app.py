@@ -4,6 +4,7 @@ Compare a printed poster photo against an approved master to surface evidence of
 """
 
 import base64
+import html
 
 import cv2
 import numpy as np
@@ -187,6 +188,287 @@ def audit_images(
         "photo_field_crop_uri": _to_data_uri(obs_field_crop),
         "diff_crop_uri": _to_data_uri(diff_colored),
     }
+
+
+# ---------------------------------------------------------------------------
+# HTML Presentation Shell
+# ---------------------------------------------------------------------------
+
+CSS_STYLES = """
+<style>
+:root {
+  --bg-color: #0f172a;
+  --card-bg: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --primary: #38bdf8;
+  --accent: #6366f1;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border-color: #334155;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.6;
+  padding: 2rem 1rem;
+}
+.container { max-width: 1000px; margin: 0 auto; }
+header { text-align: center; margin-bottom: 2rem; }
+h1 { font-size: 2.25rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; }
+p.subtitle { color: var(--text-muted); font-size: 1rem; }
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+.card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+.form-group { margin-bottom: 1rem; }
+label { display: block; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main); font-size: 0.9rem; }
+input[type="file"], input[type="text"], input[type="number"] {
+  width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: #0f172a; color: #fff; font-size: 0.9rem;
+}
+.roi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+.btn {
+  display: inline-block; background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; border: none; padding: 0.8rem 1.5rem;
+  font-weight: 600; font-size: 1rem; border-radius: 8px; cursor: pointer; text-decoration: none; text-align: center; transition: opacity 0.2s;
+}
+.btn:hover { opacity: 0.9; }
+.demo-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+.demo-btn {
+  background: #334155; color: #f8fafc; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.875rem; transition: background 0.2s;
+}
+.demo-btn:hover { background: #475569; }
+.badge { display: inline-block; padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; }
+.badge-success { background: rgba(34, 197, 94, 0.2); color: var(--success); border: 1px solid var(--success); }
+.badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+.badge-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+.badge-info { background: rgba(56, 189, 248, 0.2); color: var(--primary); border: 1px solid var(--primary); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+.img-box { text-align: center; background: #0f172a; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); }
+.img-box img { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 0 auto 0.5rem; }
+.img-box span { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+table.metrics { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+table.metrics th, table.metrics td { padding: 0.6rem; border-bottom: 1px solid var(--border-color); text-align: left; font-size: 0.9rem; }
+table.metrics th { color: var(--text-muted); font-weight: 600; }
+</style>
+"""
+
+
+def input_form() -> str:
+    """Return the HTML upload form and demo scenarios."""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PosterProof — Event Poster Audit</title>
+  {CSS_STYLES}
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>PosterProof</h1>
+      <p class="subtitle">Evidence-First Event Poster Audit & Integrity Verification</p>
+    </header>
+
+    <div class="card">
+      <h2>Upload Poster Images for Audit</h2>
+      <form action="/audit" method="post" enctype="multipart/form-data">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="master">Approved Master Poster (PNG/JPG):</label>
+            <input type="file" id="master" name="master" accept="image/*" required>
+          </div>
+          <div class="form-group">
+            <label for="photo">Printed Poster Photo (PNG/JPG):</label>
+            <input type="file" id="photo" name="photo" accept="image/*" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label for="expected_qr">Expected QR Payload (URL or String):</label>
+          <input type="text" id="expected_qr" name="expected_qr" value="{DEFAULT_EXPECTED_PAYLOAD}">
+        </div>
+
+        <div class="form-grid" style="margin-top: 1rem;">
+          <div class="form-group">
+            <label>Monitored QR Code Region (X, Y, Width, Height):</label>
+            <div class="roi-grid">
+              <input type="number" name="qr_x" value="{DEFAULT_QR_ROI[0]}" required>
+              <input type="number" name="qr_y" value="{DEFAULT_QR_ROI[1]}" required>
+              <input type="number" name="qr_w" value="{DEFAULT_QR_ROI[2]}" required>
+              <input type="number" name="qr_h" value="{DEFAULT_QR_ROI[3]}" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Monitored Text/Date Region (X, Y, Width, Height):</label>
+            <div class="roi-grid">
+              <input type="number" name="field_x" value="{DEFAULT_FIELD_ROI[0]}" required>
+              <input type="number" name="field_y" value="{DEFAULT_FIELD_ROI[1]}" required>
+              <input type="number" name="field_w" value="{DEFAULT_FIELD_ROI[2]}" required>
+              <input type="number" name="field_h" value="{DEFAULT_FIELD_ROI[3]}" required>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; text-align: center;">
+          <button type="submit" class="btn">Run Poster Proof Audit</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Interactive Demo Scenarios</h2>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Click any scenario below to test PosterProof on synthetic poster fixtures:
+      </p>
+      <div class="demo-links">
+        <a href="/demo/scenario_1" class="demo-btn">Scenario 1: Unchanged Photo (Match)</a>
+        <a href="/demo/scenario_2" class="demo-btn">Scenario 2: Date/Text Changed</a>
+        <a href="/demo/scenario_3" class="demo-btn">Scenario 3: QR Code Tampered</a>
+        <a href="/demo/scenario_4" class="demo-btn">Scenario 4: Poor Input / Unrelated Poster</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
+def result_html(res: dict) -> str:
+    """Return the audit evidence result page HTML."""
+    if res["qr_state"] == "QR PAYLOAD MATCHED":
+        qr_badge = "badge-success"
+    elif res["qr_state"] == "MISMATCH DETECTED":
+        qr_badge = "badge-danger"
+    else:
+        qr_badge = "badge-warning"
+
+    if "CHANGE CANDIDATE" in res["field_state"]:
+        field_badge = "badge-danger"
+    else:
+        field_badge = "badge-success"
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Report — PosterProof</title>
+  {CSS_STYLES}
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>PosterProof Audit Report</h1>
+      <p class="subtitle">Evidence Summary & Visual Alignment Analysis</p>
+    </header>
+
+    <div class="card">
+      <h2>Audit Findings Summary</h2>
+      <table class="metrics">
+        <tr>
+          <th>Check Item</th>
+          <th>Status / Measured Value</th>
+        </tr>
+        <tr>
+          <td><strong>QR Code Verification</strong></td>
+          <td><span class="badge {qr_badge}">{html.escape(res['qr_state'])}</span></td>
+        </tr>
+        <tr>
+          <td>Master QR Payload</td>
+          <td><code>{html.escape(res.get('master_qr_payload', '') or 'None')}</code></td>
+        </tr>
+        <tr>
+          <td>Photo QR Payload</td>
+          <td><code>{html.escape(res.get('photo_qr_payload', '') or 'None')}</code></td>
+        </tr>
+        <tr>
+          <td>Expected Payload</td>
+          <td><code>{html.escape(res.get('expected_qr_payload', '') or 'None')}</code></td>
+        </tr>
+        <tr>
+          <td><strong>Monitored Text Region</strong></td>
+          <td><span class="badge {field_badge}">{html.escape(res['field_state'])}</span></td>
+        </tr>
+        <tr>
+          <td>Changed Pixel Area</td>
+          <td>{res['changed_pct']}% (Threshold: &ge; 7.5%)</td>
+        </tr>
+        <tr>
+          <td>Mean Intensity Difference</td>
+          <td>{res['mean_pct']}% (Threshold: &ge; 4.0%)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Visual Alignment & Rectification</h2>
+      <div class="grid-2">
+        <div class="img-box">
+          <img src="{res['master_uri']}" alt="Master Poster">
+          <span>Approved Master Reference</span>
+        </div>
+        <div class="img-box">
+          <img src="{res['registered_photo_uri']}" alt="Rectified Photo">
+          <span>Rectified Photo</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Monitored Region Evidence Crops</h2>
+      <div class="grid-3" style="margin-bottom: 1.5rem;">
+        <div class="img-box">
+          <img src="{res['master_qr_crop_uri']}" alt="Master QR Crop">
+          <span>Master QR ROI</span>
+        </div>
+        <div class="img-box">
+          <img src="{res['photo_qr_crop_uri']}" alt="Photo QR Crop">
+          <span>Photo QR ROI</span>
+        </div>
+        <div class="img-box" style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+          <span><strong>QR Match Status</strong></span>
+          <span class="badge {qr_badge}" style="margin-top: 0.5rem;">{html.escape(res['qr_state'])}</span>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="img-box">
+          <img src="{res['master_field_crop_uri']}" alt="Master Field Crop">
+          <span>Master Text ROI</span>
+        </div>
+        <div class="img-box">
+          <img src="{res['photo_field_crop_uri']}" alt="Photo Field Crop">
+          <span>Photo Text ROI</span>
+        </div>
+        <div class="img-box">
+          <img src="{res['diff_crop_uri']}" alt="Difference Heatmap">
+          <span>Difference Heatmap</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 1.5rem;">
+      <a href="/" class="btn">&larr; Run Another Audit</a>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
 
 
 
