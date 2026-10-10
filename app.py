@@ -4,12 +4,6 @@ Compare a printed poster photo against an approved master to surface evidence of
 """
 
 import base64
-import cgi
-import html
-import io
-import os
-import sys
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import cv2
 import numpy as np
@@ -111,4 +105,90 @@ def register_image(reference: np.ndarray, observed: np.ndarray) -> np.ndarray:
     h_ref, w_ref = reference.shape[:2]
     registered = cv2.warpPerspective(observed, H, (w_ref, h_ref))
     return registered
+
+
+# ---------------------------------------------------------------------------
+# Audit Pipeline
+# ---------------------------------------------------------------------------
+
+DEFAULT_QR_ROI = (50, 400, 150, 150)
+DEFAULT_FIELD_ROI = (50, 250, 400, 100)
+DEFAULT_EXPECTED_PAYLOAD = "https://event.example.com/ticket"
+
+
+def audit_images(
+    master_bytes: bytes,
+    photo_bytes: bytes,
+    qr_roi: tuple = DEFAULT_QR_ROI,
+    field_roi: tuple = DEFAULT_FIELD_ROI,
+    expected_qr: str = DEFAULT_EXPECTED_PAYLOAD,
+) -> dict:
+    """Perform full audit pipeline: decode -> register -> crop ROIs -> decode QR -> compare field -> assemble result."""
+    master_img = decode_image(master_bytes, "Master image")
+    photo_img = decode_image(photo_bytes, "Photo image")
+
+    # Align photo to master geometry
+    registered_img = register_image(master_img, photo_img)
+
+    # 1. QR code audit (ROI crop ONLY)
+    master_qr_crop = crop_roi(master_img, qr_roi, "Master QR ROI")
+    photo_qr_crop = crop_roi(registered_img, qr_roi, "Photo QR ROI")
+
+    master_qr_text = decode_qr(master_qr_crop)
+    photo_qr_text = decode_qr(photo_qr_crop)
+
+    if not photo_qr_text:
+        qr_state = "COULD NOT VERIFY"
+        qr_match = False
+    else:
+        target_payload = expected_qr if expected_qr else master_qr_text
+        if photo_qr_text == target_payload:
+            qr_state = "QR PAYLOAD MATCHED"
+            qr_match = True
+        else:
+            qr_state = "MISMATCH DETECTED"
+            qr_match = False
+
+    # 2. Monitored Field difference audit
+    ref_field_crop = crop_roi(master_img, field_roi, "Master Field ROI")
+    obs_field_crop = crop_roi(registered_img, field_roi, "Photo Field ROI")
+
+    ref_gray = cv2.GaussianBlur(cv2.cvtColor(ref_field_crop, cv2.COLOR_BGR2GRAY), (5, 5), 0)
+    obs_gray = cv2.GaussianBlur(cv2.cvtColor(obs_field_crop, cv2.COLOR_BGR2GRAY), (5, 5), 0)
+
+    diff = cv2.absdiff(ref_gray, obs_gray)
+    changed_pct = round(100.0 * float(np.mean(diff > 30)), 2)
+    mean_pct = round(100.0 * float(np.mean(diff)) / 255.0, 2)
+
+    is_field_changed = changed_pct >= 7.5 or mean_pct >= 4.0
+    field_state = (
+        "CHANGE CANDIDATE — REVIEW"
+        if is_field_changed
+        else "NO THRESHOLD-EXCEEDING CHANGE FLAGGED IN MONITORED REGION"
+    )
+
+    diff_colored = cv2.applyColorMap(diff, cv2.COLORMAP_JET)
+
+    return {
+        "qr_state": qr_state,
+        "qr_match": qr_match,
+        "master_qr_payload": master_qr_text,
+        "photo_qr_payload": photo_qr_text,
+        "expected_qr_payload": expected_qr,
+        "field_state": field_state,
+        "field_changed": is_field_changed,
+        "changed_pct": changed_pct,
+        "mean_pct": mean_pct,
+        "master_uri": _to_data_uri(master_img),
+        "registered_photo_uri": _to_data_uri(registered_img),
+        "master_qr_crop_uri": _to_data_uri(master_qr_crop),
+        "photo_qr_crop_uri": _to_data_uri(photo_qr_crop),
+        "master_field_crop_uri": _to_data_uri(ref_field_crop),
+        "photo_field_crop_uri": _to_data_uri(obs_field_crop),
+        "diff_crop_uri": _to_data_uri(diff_colored),
+    }
+
+
+
+
 
