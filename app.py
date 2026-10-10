@@ -5,6 +5,7 @@ Compare a printed poster photo against an approved master to surface evidence of
 
 import base64
 import html
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import cv2
 import numpy as np
@@ -468,6 +469,151 @@ def result_html(res: dict) -> str:
 </body>
 </html>
 """
+
+
+def error_html(message: str) -> str:
+    """Return styled error page for AuditError and HTTP error states."""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Audit Error — PosterProof</title>
+  {CSS_STYLES}
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>PosterProof</h1>
+      <p class="subtitle">Evidence-First Event Poster Audit</p>
+    </header>
+    <div class="card" style="border-color: var(--danger);">
+      <h2 style="color: var(--danger);">Audit Refusal / Verification Error</h2>
+      <p style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.05rem;">
+        {html.escape(message)}
+      </p>
+      <div style="text-align: center; margin-top: 1.5rem;">
+        <a href="/" class="btn">&larr; Return to Upload Form</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
+# ---------------------------------------------------------------------------
+# HTTP Multipart Parser & Request Handler
+# ---------------------------------------------------------------------------
+
+def parse_multipart(body_bytes: bytes, boundary: bytes) -> tuple:
+    """Parse raw multipart/form-data body bytes into fields (dict[str, str]) and files (dict[str, bytes])."""
+    fields = {}
+    files = {}
+
+    delimiter = b"--" + boundary
+    parts = body_bytes.split(delimiter)
+
+    for part in parts:
+        if not part or part == b"--\r\n" or part == b"--" or part.startswith(b"--"):
+            continue
+        if b"\r\n\r\n" not in part:
+            continue
+        header_section, content = part.split(b"\r\n\r\n", 1)
+        if content.endswith(b"\r\n"):
+            content = content[:-2]
+
+        header_text = header_section.decode("utf-8", errors="ignore")
+        headers = {}
+        for line in header_text.split("\r\n"):
+            if ":" in line:
+                k, v = line.split(":", 1)
+                headers[k.strip().lower()] = v.strip()
+
+        cd = headers.get("content-disposition", "")
+        if "name=" in cd:
+            name_part = cd.split('name="')[1].split('"')[0]
+            if 'filename="' in cd:
+                files[name_part] = content
+            else:
+                fields[name_part] = content.decode("utf-8", errors="ignore")
+
+    return fields, files
+
+
+class Handler(BaseHTTPRequestHandler):
+    """HTTP Handler supporting web upload form, /audit POST endpoint, and demo routes."""
+
+    def do_GET(self):
+        if self.path == "/":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(input_form().encode("utf-8"))
+        elif self.path.startswith("/demo/scenario_"):
+            self.handle_demo_route(self.path)
+        else:
+            self.send_error(404, "Page Not Found")
+
+    def do_POST(self):
+        if self.path != "/audit":
+            self.send_error(404, "Not Found")
+            return
+
+        content_type = self.headers.get("Content-Type", "")
+        if "boundary=" not in content_type:
+            self.send_response(400)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(error_html("Invalid form submission.").encode("utf-8"))
+            return
+
+        boundary = content_type.split("boundary=")[1].split(";")[0].strip().encode("ascii")
+
+        length = int(self.headers.get("Content-Length", "0"))
+        if length <= 0 or length > MAX_UPLOAD_BYTES:
+            status_code = 413 if length > MAX_UPLOAD_BYTES else 400
+            self.send_response(status_code)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            err_msg = "File exceeds the 20 MB upload size limit." if status_code == 413 else "Invalid request body length."
+            self.wfile.write(error_html(err_msg).encode("utf-8"))
+            return
+
+        body = self.rfile.read(length)
+        fields, files = parse_multipart(body, boundary)
+
+        master_bytes = files.get("master", b"")
+        photo_bytes = files.get("photo", b"")
+
+        if not master_bytes or not photo_bytes:
+            self.send_response(400)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(error_html("Both approved master poster and printed photo are required.").encode("utf-8"))
+            return
+
+        try:
+            qr_roi = _roi_from_fields(fields, "qr") if "qr_x" in fields else DEFAULT_QR_ROI
+            field_roi = _roi_from_fields(fields, "field") if "field_x" in fields else DEFAULT_FIELD_ROI
+            expected_qr = fields.get("expected_qr", DEFAULT_EXPECTED_PAYLOAD)
+
+            result = audit_images(master_bytes, photo_bytes, qr_roi, field_roi, expected_qr)
+            html_out = result_html(result)
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html_out.encode("utf-8"))
+        except AuditError as exc:
+            self.send_response(400)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(error_html(str(exc)).encode("utf-8"))
+
+    def handle_demo_route(self, path: str):
+        # Placeholder handler for demo scenarios, completed in Task 9
+        self.send_error(404, f"Demo route {path} not configured yet.")
+
 
 
 
