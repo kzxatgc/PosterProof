@@ -704,7 +704,26 @@ class Handler(BaseHTTPRequestHandler):
 
 
 
+# ---------------------------------------------------------------------------
+# Entry Point
+# ---------------------------------------------------------------------------
 
+HOST = "127.0.0.1"
+PORT = int(os.environ.get("POSTERPROOF_PORT", "8765"))
+
+
+if __name__ == "__main__":
+    server = ThreadingHTTPServer((HOST, PORT), Handler)
+    print("=" * 55)
+    print("  PosterProof — Evidence-First Event Poster Audit")
+    print("=" * 55)
+    print(f"  Running at:  http://{HOST}:{PORT}/")
+    print("  Press Ctrl+C to stop.")
+    print("=" * 55)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nServer stopped.")
 
 
 
