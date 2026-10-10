@@ -6,6 +6,7 @@ Compare a printed poster photo against an approved master to surface evidence of
 import base64
 import html
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import os
 
 import cv2
 import numpy as np
@@ -336,9 +337,9 @@ def input_form() -> str:
         Click any scenario below to test PosterProof on synthetic poster fixtures:
       </p>
       <div class="demo-links">
-        <a href="/demo/scenario_1" class="demo-btn">Scenario 1: Unchanged Photo (Match)</a>
+        <a href="/demo/scenario_1" class="demo-btn">Scenario 1: QR Code Tampered</a>
         <a href="/demo/scenario_2" class="demo-btn">Scenario 2: Date/Text Changed</a>
-        <a href="/demo/scenario_3" class="demo-btn">Scenario 3: QR Code Tampered</a>
+        <a href="/demo/scenario_3" class="demo-btn">Scenario 3: Unchanged Photo (Match)</a>
         <a href="/demo/scenario_4" class="demo-btn">Scenario 4: Poor Input / Unrelated Poster</a>
       </div>
     </div>
@@ -611,8 +612,95 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(error_html(str(exc)).encode("utf-8"))
 
     def handle_demo_route(self, path: str):
-        # Placeholder handler for demo scenarios, completed in Task 9
-        self.send_error(404, f"Demo route {path} not configured yet.")
+        """Serve one of 4 demo scenarios by reading pre-generated fixture PNGs."""
+        # Map route → (master_filename, photo_filename, expected_qr_payload)
+        _SCENARIO_MAP = {
+            "/demo/scenario_1": (
+                "approved_master.png",
+                "scenario_3_qr_changed_photo.png",
+                DEFAULT_EXPECTED_PAYLOAD,
+            ),
+            "/demo/scenario_2": (
+                "approved_master.png",
+                "scenario_2_date_changed_photo.png",
+                DEFAULT_EXPECTED_PAYLOAD,
+            ),
+            "/demo/scenario_3": (
+                "approved_master.png",
+                "scenario_1_unchanged_photo.png",
+                DEFAULT_EXPECTED_PAYLOAD,
+            ),
+            "/demo/scenario_4": (
+                "approved_master.png",
+                "poor_input_edge_case.png",
+                DEFAULT_EXPECTED_PAYLOAD,
+            ),
+        }
+
+        scenario = _SCENARIO_MAP.get(path)
+        if scenario is None:
+            self.send_error(404, "Demo route not found.")
+            return
+
+        master_filename, photo_filename, expected_qr = scenario
+        samples_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "samples")
+        master_path = os.path.join(samples_dir, master_filename)
+        photo_path = os.path.join(samples_dir, photo_filename)
+
+        missing = [f for f in (master_path, photo_path) if not os.path.isfile(f)]
+        if missing:
+            missing_names = ", ".join(os.path.basename(f) for f in missing)
+            body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Demo Fixtures Not Ready — PosterProof</title>
+  {CSS_STYLES}
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>PosterProof</h1>
+      <p class="subtitle">Evidence-First Event Poster Audit</p>
+    </header>
+    <div class="card" style="border-color: var(--warning);">
+      <h2 style="color: var(--warning);">Demo Fixtures Not Generated Yet</h2>
+      <p style="margin-bottom: 1rem; color: var(--text-main);">
+        The following fixture file(s) have not been generated yet:
+        <code>{html.escape(missing_names)}</code>
+      </p>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Run <code>python tools/generate_samples.py</code> from the project root to create all demo fixtures.
+      </p>
+      <div style="text-align: center; margin-top: 1.5rem;">
+        <a href="/" class="btn">&larr; Return to Upload Form</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"""
+            self.send_response(404)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(body.encode("utf-8"))
+            return
+
+        try:
+            with open(master_path, "rb") as f:
+                master_bytes = f.read()
+            with open(photo_path, "rb") as f:
+                photo_bytes = f.read()
+
+            result = audit_images(master_bytes, photo_bytes, expected_qr=expected_qr)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(result_html(result).encode("utf-8"))
+        except AuditError as exc:
+            self.send_response(400)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(error_html(str(exc)).encode("utf-8"))
 
 
 
