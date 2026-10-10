@@ -1,5 +1,6 @@
 """Core tests for PosterProof application."""
 
+import io
 import cv2
 import numpy as np
 import PIL.Image
@@ -17,6 +18,14 @@ from app import (
     decode_qr,
     register_image,
 )
+from tools.generate_samples import QR_BAD, QR_PAYLOAD, make_poster, perspective_photo
+
+
+def _pil_to_png_bytes(im: PIL.Image.Image) -> bytes:
+    """Convert a PIL Image into PNG byte stream."""
+    buf = io.BytesIO()
+    im.save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def test_decode_image_rejects_junk_bytes():
@@ -52,40 +61,11 @@ def test_feature_register_refuses_low_feature_count():
         register_image(ref, obs)
 
 
-def _generate_synthetic_poster(qr_text: str = DEFAULT_EXPECTED_PAYLOAD, date_text: str = "OCTOBER 15, 2026") -> bytes:
-    """Helper to draw a 600x600 synthetic poster with rich features, text, and QR ROI."""
-    img = np.full((600, 600, 3), 245, dtype=np.uint8)
-
-    # Draw high-contrast shapes/grid so ORB feature detection finds > 12 keypoints easily
-    np.random.seed(12345)
-    for _ in range(40):
-        pt1 = (int(np.random.randint(0, 600)), int(np.random.randint(0, 600)))
-        pt2 = (int(np.random.randint(0, 600)), int(np.random.randint(0, 600)))
-        color = (int(np.random.randint(0, 200)), int(np.random.randint(0, 200)), int(np.random.randint(0, 200)))
-        cv2.line(img, pt1, pt2, color, 2)
-        cv2.circle(img, pt1, 8, color, -1)
-
-    # Draw date text inside field ROI (50, 250, 400, 100) -> x: 50..450, y: 250..350
-    cv2.putText(img, f"DATE: {date_text}", (70, 310), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (10, 10, 10), 2)
-
-    # Generate QR code for QR ROI (50, 400, 150, 150) -> x: 50..200, y: 400..550
-    qr = qrcode.QRCode(box_size=3, border=2)
-    qr.add_data(qr_text)
-    qr.make(fit=True)
-    qr_pil = qr.make_image(fill_color="black", back_color="white")
-    qr_bgr = cv2.cvtColor(np.array(qr_pil.convert("RGB")), cv2.COLOR_RGB2BGR)
-    qr_resized = cv2.resize(qr_bgr, (150, 150))
-    img[400:550, 50:200] = qr_resized
-
-    ok, buf = cv2.imencode(".png", img)
-    assert ok
-    return buf.tobytes()
-
-
 def test_audit_images_unchanged_scenario_pipeline():
     """Verify audit_images reports matched QR and unchanged field on identical posters."""
-    poster_bytes = _generate_synthetic_poster()
-    res = audit_images(poster_bytes, poster_bytes)
+    master_im = make_poster()
+    master_bytes = _pil_to_png_bytes(master_im)
+    res = audit_images(master_bytes, master_bytes)
 
     assert res["qr_state"] == "QR PAYLOAD MATCHED"
     assert res["field_state"] == "NO THRESHOLD-EXCEEDING CHANGE FLAGGED IN MONITORED REGION"
@@ -93,8 +73,8 @@ def test_audit_images_unchanged_scenario_pipeline():
 
 def test_audit_images_payload_mismatch():
     """Verify audit_images reports MISMATCH DETECTED when QR payloads differ."""
-    master_bytes = _generate_synthetic_poster(qr_text="https://event.example.com/ticket")
-    photo_bytes = _generate_synthetic_poster(qr_text="https://malicious-scam-site.com")
+    master_bytes = _pil_to_png_bytes(make_poster(payload=QR_PAYLOAD))
+    photo_bytes = _pil_to_png_bytes(make_poster(payload=QR_BAD))
 
     res = audit_images(master_bytes, photo_bytes)
     assert res["qr_state"] == "MISMATCH DETECTED"

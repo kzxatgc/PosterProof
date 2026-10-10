@@ -114,9 +114,9 @@ def register_image(reference: np.ndarray, observed: np.ndarray) -> np.ndarray:
 # Audit Pipeline
 # ---------------------------------------------------------------------------
 
-DEFAULT_QR_ROI = (50, 400, 150, 150)
-DEFAULT_FIELD_ROI = (50, 250, 400, 100)
-DEFAULT_EXPECTED_PAYLOAD = "https://event.example.com/ticket"
+DEFAULT_QR_ROI = (650, 820, 190, 190)
+DEFAULT_FIELD_ROI = (120, 425, 650, 135)
+DEFAULT_EXPECTED_PAYLOAD = "https://example.org/banana-hacks/registration?event=PP-DEMO"
 
 
 def audit_images(
@@ -780,22 +780,22 @@ class Handler(BaseHTTPRequestHandler):
         _SCENARIO_MAP = {
             "/demo/scenario_1": (
                 "approved_master.png",
-                "scenario_3_qr_changed_photo.png",
+                "poster_changed_qr_photo.png",
                 DEFAULT_EXPECTED_PAYLOAD,
             ),
             "/demo/scenario_2": (
                 "approved_master.png",
-                "scenario_2_date_changed_photo.png",
+                "poster_changed_date_photo.png",
                 DEFAULT_EXPECTED_PAYLOAD,
             ),
             "/demo/scenario_3": (
                 "approved_master.png",
-                "scenario_1_unchanged_photo.png",
+                "poster_unchanged_photo.png",
                 DEFAULT_EXPECTED_PAYLOAD,
             ),
             "/demo/scenario_4": (
                 "approved_master.png",
-                "poor_input_edge_case.png",
+                "unrelated_poor_input.png",
                 DEFAULT_EXPECTED_PAYLOAD,
             ),
         }
