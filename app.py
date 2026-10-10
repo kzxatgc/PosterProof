@@ -11,7 +11,68 @@ import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import cv2
+import numpy as np
+
 
 class AuditError(Exception):
     """Raised when audit input is invalid or evidence is insufficient to compare."""
     pass
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+# Maximum accepted upload size per image (20 MB; suits local event-staff use).
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+
+
+# ---------------------------------------------------------------------------
+# Image I/O helpers
+# ---------------------------------------------------------------------------
+
+def decode_image(data: bytes, label: str) -> np.ndarray:
+    """Decode raw image bytes into a BGR array; raise AuditError on failure."""
+    if not data or len(data) > MAX_UPLOAD_BYTES:
+        raise AuditError(f"{label}: missing image or upload exceeds the size limit.")
+    image = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_COLOR)
+    if image is None:
+        raise AuditError(f"{label}: unsupported or damaged image file.")
+    return image
+
+
+def crop_roi(image: np.ndarray, roi: tuple, label: str) -> np.ndarray:
+    """Slice a rectangle from *image*; raise AuditError if the rect is out of bounds."""
+    x, y, w, h = roi
+    ih, iw = image.shape[:2]
+    if x < 0 or y < 0 or w <= 0 or h <= 0 or x + w > iw or y + h > ih:
+        raise AuditError(f"{label} rectangle is outside the image.")
+    return image[y:y + h, x:x + w].copy()
+
+
+def _roi_from_fields(fields: dict, prefix: str) -> tuple:
+    """Parse x/y/w/h integer fields from a form-field dict with a given prefix."""
+    try:
+        x = int(fields[f"{prefix}_x"])
+        y = int(fields[f"{prefix}_y"])
+        w = int(fields[f"{prefix}_w"])
+        h = int(fields[f"{prefix}_h"])
+    except (KeyError, ValueError) as exc:
+        raise AuditError(f"Invalid or missing ROI fields for '{prefix}': {exc}") from exc
+    return (x, y, w, h)
+
+
+def decode_qr(cropped_roi: np.ndarray) -> str:
+    """Decode a QR code from a pre-cropped ROI array only; never searches the whole image."""
+    text, _points, _straight = cv2.QRCodeDetector().detectAndDecode(cropped_roi)
+    return text or ""
+
+
+def _to_data_uri(image: np.ndarray) -> str:
+    """Encode a BGR image array to a base64 PNG data URI (in-memory; no temp files)."""
+    ok, buf = cv2.imencode(".png", image)
+    if not ok:
+        raise AuditError("Failed to encode image for display.")
+    b64 = base64.b64encode(buf.tobytes()).decode("ascii")
+    return f"data:image/png;base64,{b64}"
