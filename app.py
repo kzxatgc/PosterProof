@@ -193,76 +193,240 @@ def audit_images(
 
 
 # ---------------------------------------------------------------------------
-# HTML Presentation Shell
+# HTML Presentation Shell — Neo-Pop Digital Aesthetic
 # ---------------------------------------------------------------------------
 
 CSS_STYLES = """
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;900&family=Space+Grotesk:wght@500;700&display=swap');
+
 :root {
-  --bg-color: #0f172a;
-  --card-bg: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --primary: #38bdf8;
-  --accent: #6366f1;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --border-color: #334155;
+  --bg-base: #F8F9FA;
+  --text-main: #0A0A0A;
+  --primary-pink: #FF2A85;
+  --primary-cyan: #00F0FF;
+  --primary-purple: #B829FF;
+  --neon-yellow: #FFE600;
+  --neon-green: #00FF66;
+  --card-bg: #FFFFFF;
+  --border-dark: #0A0A0A;
 }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: var(--bg-color);
+  font-family: 'Space Grotesk', sans-serif;
+  background-color: var(--bg-base);
   color: var(--text-main);
-  line-height: 1.6;
-  padding: 2rem 1rem;
+  line-height: 1.5;
+  padding: 2.5rem 1rem;
+  background-image: radial-gradient(#D1D5DB 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
 }
+
 .container { max-width: 1000px; margin: 0 auto; }
-header { text-align: center; margin-bottom: 2rem; }
-h1 { font-size: 2.25rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; }
-p.subtitle { color: var(--text-muted); font-size: 1rem; }
+
+header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+
+h1 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 3.2rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  letter-spacing: -1px;
+  -webkit-text-stroke: 3px #0A0A0A;
+  text-shadow: 5px 5px 0px #0A0A0A;
+  margin-bottom: 0.5rem;
+}
+
+p.subtitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: var(--neon-yellow);
+  display: inline-block;
+  padding: 0.25rem 1rem;
+  border: 3px solid var(--border-dark);
+  border-radius: 999px;
+  box-shadow: 3px 3px 0px var(--border-dark);
+  transform: rotate(-1deg);
+}
+
 .card {
   background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  border: 3px solid var(--border-dark);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 6px 6px 0px var(--border-dark);
+  position: relative;
 }
-.card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+
+.card h2 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--text-main);
+  margin-bottom: 1.25rem;
+  border-bottom: 3px solid var(--border-dark);
+  padding-bottom: 0.75rem;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card h2::before {
+  content: "✨";
+}
+
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
-.form-group { margin-bottom: 1rem; }
-label { display: block; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main); font-size: 0.9rem; }
+
+.form-group { margin-bottom: 1.25rem; }
+
+label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 input[type="file"], input[type="text"], input[type="number"] {
-  width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: #0f172a; color: #fff; font-size: 0.9rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 3px solid var(--border-dark);
+  background: #FFF;
+  color: var(--text-main);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  box-shadow: 3px 3px 0px var(--border-dark);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
+
+input[type="file"]:focus, input[type="text"]:focus, input[type="number"]:focus {
+  outline: none;
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px var(--border-dark);
+  border-color: var(--primary-pink);
+}
+
 .roi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+
 .btn {
-  display: inline-block; background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; border: none; padding: 0.8rem 1.5rem;
-  font-weight: 600; font-size: 1rem; border-radius: 8px; cursor: pointer; text-decoration: none; text-align: center; transition: opacity 0.2s;
+  display: inline-block;
+  background: var(--primary-pink);
+  color: #FFF;
+  border: 3px solid var(--border-dark);
+  padding: 0.9rem 2rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 900;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  border-radius: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  box-shadow: 4px 4px 0px var(--border-dark);
+  transition: all 0.1s ease;
 }
-.btn:hover { opacity: 0.9; }
+
+.btn:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 7px 7px 0px var(--border-dark);
+  background: #ff0072;
+}
+
 .demo-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+
 .demo-btn {
-  background: #334155; color: #f8fafc; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.875rem; transition: background 0.2s;
+  background: var(--primary-cyan);
+  color: var(--border-dark);
+  border: 3px solid var(--border-dark);
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 3px 3px 0px var(--border-dark);
+  transition: all 0.1s ease;
 }
-.demo-btn:hover { background: #475569; }
-.badge { display: inline-block; padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; }
-.badge-success { background: rgba(34, 197, 94, 0.2); color: var(--success); border: 1px solid var(--success); }
-.badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid var(--warning); }
-.badge-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
-.badge-info { background: rgba(56, 189, 248, 0.2); color: var(--primary); border: 1px solid var(--primary); }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+.demo-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px var(--border-dark);
+  background: #00d2e0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  border: 2px solid var(--border-dark);
+  box-shadow: 2px 2px 0px var(--border-dark);
+}
+
+.badge-success { background: var(--neon-green); color: var(--border-dark); }
+.badge-warning { background: var(--neon-yellow); color: var(--border-dark); }
+.badge-danger { background: var(--primary-pink); color: #FFF; }
+.badge-info { background: var(--primary-cyan); color: var(--border-dark); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
 @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
-.img-box { text-align: center; background: #0f172a; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); }
-.img-box img { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 0 auto 0.5rem; }
-.img-box span { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+
+.img-box {
+  text-align: center;
+  background: #FFF;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 3px solid var(--border-dark);
+  box-shadow: 4px 4px 0px var(--border-dark);
+}
+
+.img-box img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 2px solid var(--border-dark);
+  display: block;
+  margin: 0 auto 0.75rem;
+}
+
+.img-box span {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 table.metrics { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-table.metrics th, table.metrics td { padding: 0.6rem; border-bottom: 1px solid var(--border-color); text-align: left; font-size: 0.9rem; }
-table.metrics th { color: var(--text-muted); font-weight: 600; }
+table.metrics th, table.metrics td {
+  padding: 0.8rem;
+  border-bottom: 2px solid var(--border-dark);
+  text-align: left;
+  font-size: 0.95rem;
+}
+table.metrics th { color: var(--text-main); font-weight: 900; text-transform: uppercase; background: #F3F4F6; }
+table.metrics td code {
+  background: var(--primary-cyan);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-dark);
+  font-weight: 700;
+}
 </style>
 """
 
@@ -325,7 +489,7 @@ def input_form() -> str:
           </div>
         </div>
 
-        <div style="margin-top: 1.5rem; text-align: center;">
+        <div style="margin-top: 1.75rem; text-align: center;">
           <button type="submit" class="btn">Run Poster Proof Audit</button>
         </div>
       </form>
@@ -333,7 +497,7 @@ def input_form() -> str:
 
     <div class="card">
       <h2>Interactive Demo Scenarios</h2>
-      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+      <p style="font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem;">
         Click any scenario below to test PosterProof on synthetic poster fixtures:
       </p>
       <div class="demo-links">
@@ -374,7 +538,7 @@ def result_html(res: dict) -> str:
 <body>
   <div class="container">
     <header>
-      <h1>PosterProof Audit Report</h1>
+      <h1>Audit Report</h1>
       <p class="subtitle">Evidence Summary & Visual Alignment Analysis</p>
     </header>
 
@@ -407,11 +571,11 @@ def result_html(res: dict) -> str:
         </tr>
         <tr>
           <td>Changed Pixel Area</td>
-          <td>{res['changed_pct']}% (Threshold: &ge; 7.5%)</td>
+          <td><strong>{res['changed_pct']}%</strong> (Threshold: &ge; 7.5%)</td>
         </tr>
         <tr>
           <td>Mean Intensity Difference</td>
-          <td>{res['mean_pct']}% (Threshold: &ge; 4.0%)</td>
+          <td><strong>{res['mean_pct']}%</strong> (Threshold: &ge; 4.0%)</td>
         </tr>
       </table>
     </div>
@@ -463,7 +627,7 @@ def result_html(res: dict) -> str:
       </div>
     </div>
 
-    <div style="text-align: center; margin-top: 1.5rem;">
+    <div style="text-align: center; margin-top: 1.75rem;">
       <a href="/" class="btn">&larr; Run Another Audit</a>
     </div>
   </div>
@@ -487,12 +651,12 @@ def error_html(message: str) -> str:
       <h1>PosterProof</h1>
       <p class="subtitle">Evidence-First Event Poster Audit</p>
     </header>
-    <div class="card" style="border-color: var(--danger);">
-      <h2 style="color: var(--danger);">Audit Refusal / Verification Error</h2>
-      <p style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.05rem;">
+    <div class="card" style="border-color: var(--primary-pink);">
+      <h2 style="color: var(--primary-pink);">Audit Refusal / Verification Error</h2>
+      <p style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.05rem; font-weight: 700;">
         {html.escape(message)}
       </p>
-      <div style="text-align: center; margin-top: 1.5rem;">
+      <div style="text-align: center; margin-top: 1.75rem;">
         <a href="/" class="btn">&larr; Return to Upload Form</a>
       </div>
     </div>
@@ -613,7 +777,6 @@ class Handler(BaseHTTPRequestHandler):
 
     def handle_demo_route(self, path: str):
         """Serve one of 4 demo scenarios by reading pre-generated fixture PNGs."""
-        # Map route → (master_filename, photo_filename, expected_qr_payload)
         _SCENARIO_MAP = {
             "/demo/scenario_1": (
                 "approved_master.png",
@@ -663,16 +826,16 @@ class Handler(BaseHTTPRequestHandler):
       <h1>PosterProof</h1>
       <p class="subtitle">Evidence-First Event Poster Audit</p>
     </header>
-    <div class="card" style="border-color: var(--warning);">
-      <h2 style="color: var(--warning);">Demo Fixtures Not Generated Yet</h2>
-      <p style="margin-bottom: 1rem; color: var(--text-main);">
+    <div class="card" style="border-color: var(--neon-yellow);">
+      <h2 style="color: var(--text-main);">Demo Fixtures Not Generated Yet</h2>
+      <p style="margin-bottom: 1rem; color: var(--text-main); font-weight: 700;">
         The following fixture file(s) have not been generated yet:
         <code>{html.escape(missing_names)}</code>
       </p>
-      <p style="color: var(--text-muted); font-size: 0.9rem;">
+      <p style="color: var(--text-main); font-size: 0.95rem; font-weight: 700;">
         Run <code>python tools/generate_samples.py</code> from the project root to create all demo fixtures.
       </p>
-      <div style="text-align: center; margin-top: 1.5rem;">
+      <div style="text-align: center; margin-top: 1.75rem;">
         <a href="/" class="btn">&larr; Return to Upload Form</a>
       </div>
     </div>
@@ -703,7 +866,6 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(error_html(str(exc)).encode("utf-8"))
 
 
-
 # ---------------------------------------------------------------------------
 # Entry Point
 # ---------------------------------------------------------------------------
@@ -724,6 +886,3 @@ if __name__ == "__main__":
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nServer stopped.")
-
-
-
