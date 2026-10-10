@@ -76,3 +76,39 @@ def _to_data_uri(image: np.ndarray) -> str:
         raise AuditError("Failed to encode image for display.")
     b64 = base64.b64encode(buf.tobytes()).decode("ascii")
     return f"data:image/png;base64,{b64}"
+
+
+# ---------------------------------------------------------------------------
+# Image Registration
+# ---------------------------------------------------------------------------
+
+def register_image(reference: np.ndarray, observed: np.ndarray) -> np.ndarray:
+    """Align observed photo to reference poster geometry using ORB and homography."""
+    ref_gray = cv2.cvtColor(reference, cv2.COLOR_BGR2GRAY)
+    obs_gray = cv2.cvtColor(observed, cv2.COLOR_BGR2GRAY)
+
+    orb = cv2.ORB_create(nfeatures=2000)
+    kp_reference, desc_reference = orb.detectAndCompute(ref_gray, None)
+    kp_observed, desc_observed = orb.detectAndCompute(obs_gray, None)
+
+    if desc_reference is None or desc_observed is None or len(kp_reference) < 12 or len(kp_observed) < 12:
+        raise AuditError("Could not compare reliably: insufficient visual features detected.")
+
+    matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
+    pairs = matcher.knnMatch(desc_observed, desc_reference, k=2)
+    good = [m for pair in pairs if len(pair) == 2 for m, n in [pair] if m.distance < 0.75 * n.distance]
+
+    if len(good) < 12:
+        raise AuditError("Could not compare reliably: too few feature matches.")
+
+    src_points = np.float32([kp_observed[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+    dst_points = np.float32([kp_reference[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+
+    H, mask = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 4.0)
+    if H is None or mask is None or int(mask.sum()) < 12:
+        raise AuditError("Could not compare reliably: registration evidence is weak.")
+
+    h_ref, w_ref = reference.shape[:2]
+    registered = cv2.warpPerspective(observed, H, (w_ref, h_ref))
+    return registered
+
