@@ -1,6 +1,6 @@
 # PosterProof — Evidence-First Event Poster Audit
 
-**PosterProof** is a local, evidence-first web application designed for event staff to verify the integrity of printed event posters before public deployment. By comparing a photo of a printed poster against an approved master artwork, PosterProof automatically registers visual geometry, verifies QR code payloads, and flags unapproved changes in monitored text areas (such as event dates and times).
+**PosterProof** is an evidence-first web application designed for event staff to verify the integrity of printed event posters before public deployment. By comparing a photo of a printed poster against an approved master artwork, PosterProof automatically registers visual geometry, verifies QR code payloads, and flags unapproved changes in monitored text areas (such as event dates and times).
 
 ---
 
