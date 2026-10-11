@@ -160,7 +160,8 @@ PosterProof/
 ├── run_windows.bat             # Windows runner script
 ├── run_unix.sh                 # Unix/Linux/macOS launcher script
 ├── docs/
-│   └── CREDITS.md              # Dependency attributions and license review
+│   ├── CREDITS.md              # Dependency attributions and license review
+│   └── TEST_RESULTS.md         # Test execution results and regression notes
 ├── data/
 │   └── samples/                # Pre-generated synthetic demo PNG poster fixtures
 ├── tests/
