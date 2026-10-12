@@ -83,8 +83,8 @@ PosterProof is designed as a human-review aid. It does not independently authent
 #### On Windows (PowerShell):
 ```powershell
 # Clone the repository
-git clone https://github.com/kzxatgc/PosterProof.git
-cd PosterProof
+git clone https://github.com/kzxatgc/poster-proof.git
+cd poster-proof
 
 # Create and activate virtual environment
 py -3 -m venv .venv
@@ -103,8 +103,8 @@ If PowerShell execution policy blocks activation script execution:
 #### On macOS / Linux / WSL:
 ```bash
 # Clone the repository
-git clone https://github.com/kzxatgc/PosterProof.git
-cd PosterProof
+git clone https://github.com/kzxatgc/poster-proof.git
+cd poster-proof
 
 # Create and activate virtual environment
 python3 -m venv .venv-unix
@@ -182,7 +182,7 @@ PosterProof/
 
 ## Links & Submissions
 
-- **Public Repository:** https://github.com/kzxatgc/PosterProof.git
+- **Public Repository:** https://github.com/kzxatgc/poster-proof.git
 
 
 ---
